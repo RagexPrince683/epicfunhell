@@ -1,8 +1,16 @@
 {
   "environment.creaking": {
-    "sounds": ["follows", "malfunction", "whiz"]
+    "sounds": [
+      { "name": "epicfunhell:follows" },
+      { "name": "epicfunhell:malfunction" },
+      { "name": "epicfunhell:whiz" }
+    ]
   },
   "environment.whispers": {
-    "sounds": ["scan", "vast", "creak"]
+    "sounds": [
+      { "name": "epicfunhell:scan" },
+      { "name": "epicfunhell:vast" },
+      { "name": "epicfunhell:creak" }
+    ]
   }
 }
