@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,29 +23,20 @@ import java.util.List;
 public class QuietTimeManager {
 
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final long QUIET_PERIOD_DURATION = 360000000;  // Duration of quiet period in seconds (e.g., 5 for testing)
-    private static final long QUIET_PERIOD_INTERVAL = 10; // Interval in seconds between quiet periods (e.g., 10 for testing)
+    private static final long QUIET_PERIOD_DURATION = 3600;  // Duration in seconds (1 hour for example)
+    private static final long QUIET_PERIOD_INTERVAL = 100;  // Interval in seconds (1 hour for example)
     private static boolean quietPeriodActive = false;
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void init() {
         LOGGER.info("QuietTimeManager: Initializing quiet period cycle.");
-        startQuietPeriodCycle();
+        startIntervalPhase();  // Begin with the interval before the first quiet period
         MinecraftForge.EVENT_BUS.register(new QuietTimeTickHandler());
     }
 
-    private static void startQuietPeriodCycle() {
-        LOGGER.info("QuietTimeManager: Starting quiet period scheduler.");
-        // Schedule toggling at intervals; handle quiet period duration within toggleQuietPeriod
-        scheduler.scheduleAtFixedRate(QuietTimeManager::toggleQuietPeriod, 0, QUIET_PERIOD_INTERVAL, TimeUnit.SECONDS);
-    }
-
-    private static void toggleQuietPeriod() {
-        if (quietPeriodActive) {
-            endQuietPeriod();  // End quiet period if active
-        } else {
-            startQuietPeriod();  // Start new quiet period if inactive
-        }
+    private static void startIntervalPhase() {
+        LOGGER.info("QuietTimeManager: Interval phase started. Quiet period will begin in " + QUIET_PERIOD_INTERVAL + " seconds.");
+        scheduler.schedule(QuietTimeManager::startQuietPeriod, QUIET_PERIOD_INTERVAL, TimeUnit.SECONDS);
     }
 
     private static void startQuietPeriod() {
@@ -55,7 +45,7 @@ public class QuietTimeManager {
             LOGGER.info("QuietTimeManager: Entering quiet period.");
             disableHostileMobSpawning();
 
-            // Schedule end of quiet period strictly after QUIET_PERIOD_DURATION
+            // Schedule the end of the quiet period after QUIET_PERIOD_DURATION
             scheduler.schedule(QuietTimeManager::endQuietPeriod, QUIET_PERIOD_DURATION, TimeUnit.SECONDS);
         }
     }
@@ -65,6 +55,9 @@ public class QuietTimeManager {
             quietPeriodActive = false;
             LOGGER.info("QuietTimeManager: Ending quiet period.");
             enableHostileMobSpawning();
+
+            // Restart interval phase for the next quiet period
+            startIntervalPhase();
         }
     }
 
@@ -93,7 +86,6 @@ public class QuietTimeManager {
         }
 
         public static void activelyDespawnHostileMobs(ServerLevel serverWorld) {
-            // Create a temporary list to store entities to be removed
             List<Entity> entitiesToRemove = new ArrayList<>();
 
             for (Entity entity : serverWorld.getEntities().getAll()) {
@@ -103,7 +95,6 @@ public class QuietTimeManager {
                 }
             }
 
-            // Remove all hostile mobs from the temporary list
             for (Entity entity : entitiesToRemove) {
                 entity.remove(Entity.RemovalReason.DISCARDED);
                 LOGGER.debug("QuietTimeManager: Despawned hostile mob - " + entity.getName().getString());
@@ -117,6 +108,5 @@ public class QuietTimeManager {
             });
             LOGGER.info("QuietTimeManager: Played environmental sounds for players.");
         }
-
     }
 }
