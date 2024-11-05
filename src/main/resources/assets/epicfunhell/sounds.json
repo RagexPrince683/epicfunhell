@@ -1,0 +1,8 @@
+{
+  "environment.creaking": {
+    "sounds": ["follows", "malfunction", "whiz"]
+  },
+  "environment.whispers": {
+    "sounds": ["scan", "vast", "creak"]
+  }
+}

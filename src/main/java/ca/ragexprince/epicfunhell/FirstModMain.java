@@ -12,6 +12,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import ca.ragexprince.epicfunhell.util.ModSounds;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(FirstModMain.MOD_ID)
@@ -22,6 +23,7 @@ public class FirstModMain {
     public FirstModMain() {
         QuietTimeManager.init();
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModSounds.register(FMLJavaModLoadingContext.get().getModEventBus());
 
         modEventBus.addListener(this::setup);
         ItemInit.ITEMS.register(modEventBus);
