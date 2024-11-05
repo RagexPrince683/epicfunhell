@@ -9,6 +9,26 @@ import net.minecraftforge.event.entity.player.PlayerWakeUpEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.FogRenderer;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+import org.apache.commons.lang3.tuple.Pair;
+
+
 public class MorningFog {
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
     public class FogHandler {
@@ -29,19 +49,19 @@ public class MorningFog {
             long currentTime = Minecraft.getInstance().level.getGameTime();
             long elapsed = currentTime - wakeTime;
 
-            // Fog effect lasts for 600 ticks (30 seconds)
-            if (elapsed < 600) {
-                float density = 5.2f * (1 - (elapsed / 600f)); // Increase base density
-                float fogEnd = 90.0f * density; // Make the fog end closer to increase intensity
+            if (elapsed < 600) { // Fog lasts for 600 ticks (30 seconds)
+                //float density = 0.5f * (1 - (elapsed / 600f)); // Increase density for thicker fog
+                float fogStart = 0.5f; // Set fog start extremely close to the player
+                float fogEnd = 1.5f; // Set fog end slightly further to simulate mist
 
-                // Set fog start closer to make it denser and harder to see
-                RenderSystem.setShaderFogStart(0.0f);
+                // Apply very close fog distances
+                RenderSystem.setShaderFogStart(fogStart);
                 RenderSystem.setShaderFogEnd(fogEnd);
 
-                // Set fog color to green (adjust RGB values as needed for desired color)
-                RenderSystem.setShaderFogColor(0.1f, 0.6f, 0.1f); // Dark green color
+                // Set fog color to green
+                RenderSystem.setShaderFogColor(0.1f, 0.6f, 0.1f); // Dark green
 
-                event.setCanceled(true); // Apply custom fog
+                event.setCanceled(true); // Apply custom fog effect
             } else {
                 wakeTime = -1; // Reset after fog effect ends
             }
