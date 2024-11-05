@@ -51,7 +51,7 @@ public class MorningFog {
 
             if (elapsed < 600) { // Fog lasts for 600 ticks (30 seconds)
                 //float density = 0.5f * (1 - (elapsed / 600f)); // Increase density for thicker fog
-                float fogStart = 0.5f; // Set fog start extremely close to the player
+                float fogStart = 100.5f; // Set fog start extremely close to the player
                 float fogEnd = 1.5f; // Set fog end slightly further to simulate mist
 
                 // Apply very close fog distances
