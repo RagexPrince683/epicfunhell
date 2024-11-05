@@ -24,7 +24,7 @@ public class QuietTimeManager {
 
     private static final Logger LOGGER = LogManager.getLogger();
     private static final long QUIET_PERIOD_DURATION = 3600;  // Duration in seconds (1 hour for example)
-    private static final long QUIET_PERIOD_INTERVAL = 100;  // Interval in seconds (1 hour for example)
+    private static final long QUIET_PERIOD_INTERVAL = 3600;  // Interval in seconds (1 hour for example)
     private static boolean quietPeriodActive = false;
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
