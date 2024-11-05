@@ -10,6 +10,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
+//import net.minecraftforge.fml.server.ServerLifecycleHooks;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,9 +19,9 @@ import java.util.concurrent.TimeUnit;
 @Mod.EventBusSubscriber
 public class QuietTimeManager {
 
+    private static final long QUIET_PERIOD_DURATION = 60 * 60;  // Set the quiet period duration in seconds (1 hour for testing)
+    private static final long QUIET_PERIOD_INTERVAL = 5;   // Set the interval between quiet periods in seconds (5 minutes for testing)
     private static boolean quietPeriodActive = false;
-    private static final long QUIET_PERIOD_DURATION = 3600; // 1 hour in seconds 3600
-    private static final long QUIET_PERIOD_INTERVAL = 7200; // 2 hours in seconds 7200
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public static void init() {
@@ -29,9 +30,11 @@ public class QuietTimeManager {
     }
 
     private static void startQuietPeriodCycle() {
+        // Schedule to start a quiet period at regular intervals
         scheduler.scheduleAtFixedRate(() -> {
-            System.out.println("QuietTimeManager: Scheduled quiet period check.");
-            startQuietPeriod();
+            if (!quietPeriodActive) {
+                startQuietPeriod();
+            }
         }, 0, QUIET_PERIOD_INTERVAL, TimeUnit.SECONDS);
     }
 
@@ -39,11 +42,7 @@ public class QuietTimeManager {
         if (!quietPeriodActive) {
             quietPeriodActive = true;
             System.out.println("Entering quiet period...");
-            // Disable mob spawning
-            for (ServerLevel world : ServerLifecycleHooks.getCurrentServer().getAllLevels()) {
-                world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false, world.getServer());
-            }
-            MinecraftForge.EVENT_BUS.register(new QuietTimeTickHandler());
+            disableHostileMobSpawning();
 
             // Schedule the end of the quiet period after QUIET_PERIOD_DURATION
             scheduler.schedule(QuietTimeManager::endQuietPeriod, QUIET_PERIOD_DURATION, TimeUnit.SECONDS);
@@ -54,28 +53,37 @@ public class QuietTimeManager {
         if (quietPeriodActive) {
             quietPeriodActive = false;
             System.out.println("Ending quiet period...");
-            // Re-enable mob spawning
-            for (ServerLevel world : ServerLifecycleHooks.getCurrentServer().getAllLevels()) {
-                world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true, world.getServer());
-            }
-            MinecraftForge.EVENT_BUS.unregister(QuietTimeTickHandler.class);
+            enableHostileMobSpawning();
         }
     }
 
+    private static void disableHostileMobSpawning() {
+        for (ServerLevel world : ServerLifecycleHooks.getCurrentServer().getAllLevels()) {
+            world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false, world.getServer());
+        }
+    }
+
+    private static void enableHostileMobSpawning() {
+        for (ServerLevel world : ServerLifecycleHooks.getCurrentServer().getAllLevels()) {
+            world.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(true, world.getServer());
+        }
+    }
+
+    @Mod.EventBusSubscriber
     private static class QuietTimeTickHandler {
         @SubscribeEvent
-        public void onWorldTick(TickEvent.WorldTickEvent event) {
-            if (event.phase == TickEvent.Phase.END && event.world instanceof ServerLevel serverWorld) {
-                if (quietPeriodActive) {
-                    activelyDespawnMobs(serverWorld);
-                    triggerEnvironmentalSounds(serverWorld);
-                }
+        public static void onWorldTick(TickEvent.WorldTickEvent event) {
+            if (event.phase == TickEvent.Phase.END && quietPeriodActive && event.world instanceof ServerLevel serverWorld) {
+                activelyDespawnHostileMobs(serverWorld);
             }
         }
 
-        private void activelyDespawnMobs(ServerLevel serverWorld) {
+        public static void activelyDespawnHostileMobs(ServerLevel serverWorld) {
+            // Iterate over all loaded entities in the server world
             for (Entity entity : serverWorld.getEntities().getAll()) {
+                // Check if the entity is an instance of Monster (hostile mob)
                 if (entity instanceof Monster) {
+                    // Remove the entity with the specified reason
                     entity.remove(Entity.RemovalReason.DISCARDED);
                 }
             }
@@ -87,5 +95,6 @@ public class QuietTimeManager {
                 player.playSound(ModSounds.WHISPERS.get(), 1.0F, 0.9F);
             });
         }
+
     }
 }
