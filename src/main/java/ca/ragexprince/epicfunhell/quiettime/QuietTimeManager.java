@@ -19,6 +19,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.util.RandomSource;
+
+
 @Mod.EventBusSubscriber
 public class QuietTimeManager {
 
@@ -77,11 +80,29 @@ public class QuietTimeManager {
 
     @Mod.EventBusSubscriber
     private static class QuietTimeTickHandler {
+
+        public static void triggerEnvironmentalSounds(ServerLevel serverWorld) {
+            RandomSource random = serverWorld.getRandom();
+            int chance = random.nextInt(100);
+            if (chance < 1) {
+                serverWorld.players().forEach(player -> {
+                    RandomSource random2 = serverWorld.getRandom();
+                    int chance2 = random2.nextInt(100);
+                    if (chance2 < 50) {
+                        player.playSound(ModSounds.CREAKING.get(), 1.0F, 1.0F);
+                    } else {
+                        player.playSound(ModSounds.WHISPERS.get(), 1.0F, 0.9F);
+                    }
+                });
+                LOGGER.info("QuietTimeManager: Played environmental sounds for players.");
+            }
+        }
         @SubscribeEvent
         public static void onWorldTick(TickEvent.WorldTickEvent event) {
             if (event.phase == TickEvent.Phase.END && quietPeriodActive && event.world instanceof ServerLevel serverWorld) {
                 LOGGER.info("QuietTimeManager: Actively despawning hostile mobs.");
                 activelyDespawnHostileMobs(serverWorld);
+                triggerEnvironmentalSounds(serverWorld);
             }
         }
 
@@ -101,12 +122,6 @@ public class QuietTimeManager {
             }
         }
 
-        private void triggerEnvironmentalSounds(ServerLevel serverWorld) {
-            serverWorld.players().forEach(player -> {
-                player.playSound(ModSounds.CREAKING.get(), 1.0F, 1.0F);
-                player.playSound(ModSounds.WHISPERS.get(), 1.0F, 0.9F);
-            });
-            LOGGER.info("QuietTimeManager: Played environmental sounds for players.");
-        }
+        
     }
 }
