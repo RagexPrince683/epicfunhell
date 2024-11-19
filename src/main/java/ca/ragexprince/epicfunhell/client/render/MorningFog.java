@@ -21,18 +21,15 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class MorningFog {
     private static long wakeTime = -1;
-    public static Minecraft mc = Minecraft.getInstance();
-    OptionInstance<Integer> renderDistanceOption = mc.options.renderDistance();
-    //originalRenderDistance = 16;
-    public static int originalRenderDistance = mc.options.renderDistance().get();
-
+    private static int originalRenderDistance = -1; // Store the original render distance
+    public static final Minecraft mc = Minecraft.getInstance();
 
     @SubscribeEvent
     public static void onPlayerWakeUp(PlayerWakeUpEvent event) {
         if (!event.getEntity().level.isClientSide) return;
 
-
         wakeTime = event.getEntity().level.getGameTime();
+        originalRenderDistance = mc.options.renderDistance().get(); // Save original render distance
     }
 
     @SubscribeEvent
@@ -41,48 +38,31 @@ public class MorningFog {
 
         long currentTime = Minecraft.getInstance().level.getGameTime();
         long elapsed = currentTime - wakeTime;
-        Minecraft mc = Minecraft.getInstance();
 
         if (elapsed < 600) { // Fog lasts for 600 ticks (30 seconds)
-            float fogDensity = 0.5f * (1 - (elapsed / 600f)); // Increase density over time
-            float fogStart = 0.2f + fogDensity * 0.8f; // Start fog very close to the player
-            float fogEnd = fogStart + 1.0f; // End fog slightly further
+            float progress = elapsed / 600f;
+            float fogDensity = 1.0f - progress; // Full density initially, reducing over time
+            float fogStart = 0.5f * (1 - progress); // Starts closer to the player
+            float fogEnd = fogStart + 5.0f * (1 - progress); // Slightly farther end point as fog fades
 
-            // Apply very close fog distances
+            // Apply very dense green fog
             RenderSystem.setShaderFogStart(fogStart);
             RenderSystem.setShaderFogEnd(fogEnd);
+            RenderSystem.setShaderFogColor(0.1f, 0.4f, 0.1f); // Strong green color
 
-            // Set fog color to dark green
-            RenderSystem.setShaderFogColor(0.1f, 0.2f, 0.1f); // Very dark green
-
-            // Adjust render distance
-            //LevelRenderer levelRenderer = mc.gameRenderer.renderLevel(); pain
-            //levelRenderer.setFogRenderRange(Math.max(levelRenderer.getFogRenderRange(), 32));
-            //levelRenderer.MIN_FOG_DISTANCE
-
-            // Add particle effects for extra density
-            BlockPos playerPos = mc.player.blockPosition();
-            Vec3 playerVec = mc.player.position();
-
-            //for (int i = 0; i < 10; i++) {
-            //    double x = playerVec.x() + (Math.random() - 0.5) * 2.0;
-            //    double y = playerVec.y() + (Math.random() - 0.5) * 2.0;
-            //    double z = playerVec.z() + (Math.random() - 0.5) * 2.0;
-//
-            //    //mc.level.addParticle(ParticleTypes.SMOKE, x, y, z, 0.0D, 0.01D, 0.0D);
-            //}
-
+            // Reduce render distance to simulate dense fog
             OptionInstance<Integer> renderDistanceOption = mc.options.renderDistance();
             renderDistanceOption.set(2);
             mc.options.save();
 
-
             event.setCanceled(true); // Apply custom fog effect
         } else {
-
-            OptionInstance<Integer> renderDistanceOption = mc.options.renderDistance();
-            renderDistanceOption.set(originalRenderDistance); // Restore original value
-            mc.options.save();
+            // Restore original render distance after fog effect ends
+            if (originalRenderDistance > 0) {
+                OptionInstance<Integer> renderDistanceOption = mc.options.renderDistance();
+                renderDistanceOption.set(originalRenderDistance);
+                mc.options.save();
+            }
 
             wakeTime = -1; // Reset after fog effect ends
         }
